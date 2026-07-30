@@ -225,7 +225,7 @@ export default function Home() {
       </section>
 
       <div className="upload-card-wrapper">
-        <div className="card">
+        <div className="upload-card">
           <h2>Upload your resume</h2>
           <p className="subtitle">PDF only — feedback is ready in seconds.</p>
 

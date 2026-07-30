@@ -275,51 +275,52 @@ export default function Results() {
           </button>
         </header>
 
-        <div className="results-shell">
-          <div className="main-col">
-            <section className="card score-card">
-              <ScoreRing score={overall_score} />
-              <p className="candidate-summary">{candidate_summary}</p>
-            </section>
+        {/* Row 1 — full width */}
+        <section className="card score-card">
+          <ScoreRing score={overall_score} />
+          <p className="candidate-summary">{candidate_summary}</p>
+        </section>
 
-            <section className="card">
-              <h2 className="card-title">Skills</h2>
-              <div className="two-col-grid">
-                <div className="subpanel">
-                  <h3 className="subpanel-title">Technical Skills</h3>
-                  <ChipList items={technical_skills} variant="skill" />
-                </div>
-                <div className="subpanel">
-                  <h3 className="subpanel-title">Soft Skills</h3>
-                  <ChipList items={soft_skills} variant="skill" />
-                </div>
-              </div>
-            </section>
-
-            <section className="card">
-              <h2 className="card-title">Suggested Improvements</h2>
-              <NumberedList items={suggested_improvements} />
-            </section>
+        {/* Row 2 — full width */}
+        <section className="card">
+          <h2 className="card-title">Skills</h2>
+          <div className="two-col-grid">
+            <div className="subpanel">
+              <h3 className="subpanel-title">Technical Skills</h3>
+              <ChipList items={technical_skills} variant="skill" />
+            </div>
+            <div className="subpanel">
+              <h3 className="subpanel-title">Soft Skills</h3>
+              <ChipList items={soft_skills} variant="skill" />
+            </div>
           </div>
+        </section>
 
-          <div className="side-col">
-            <section className="card accent-strength">
-              <h2 className="card-title">Strengths</h2>
-              <BulletList items={strengths} />
-            </section>
-
-            <section className="card accent-weakness">
-              <h2 className="card-title">Weaknesses</h2>
-              <BulletList items={weaknesses} />
-            </section>
-
-            <section className="card">
-              <h2 className="card-title">Suitable Job Roles</h2>
-              <ChipList items={suitable_job_roles} variant="role" />
-            </section>
-          </div>
+        {/* Row 3 — Strengths | Weaknesses, side by side */}
+        <div className="two-col-grid">
+          <section className="card accent-strength">
+            <h2 className="card-title">Strengths</h2>
+            <BulletList items={strengths} />
+          </section>
+          <section className="card accent-weakness">
+            <h2 className="card-title">Weaknesses</h2>
+            <BulletList items={weaknesses} />
+          </section>
         </div>
 
+        {/* Row 4 — Job Roles | Suggested Improvements, side by side */}
+        <div className="two-col-grid">
+          <section className="card">
+            <h2 className="card-title">Suitable Job Roles</h2>
+            <ChipList items={suitable_job_roles} variant="role" />
+          </section>
+          <section className="card">
+            <h2 className="card-title">Suggested Improvements</h2>
+            <NumberedList items={suggested_improvements} />
+          </section>
+        </div>
+
+        {/* Row 5 — full width */}
         <JobMatchSection resumeText={extracted_text} />
       </div>
     </div>

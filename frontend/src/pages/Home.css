@@ -218,7 +218,7 @@ a:focus-visible {
   z-index: 3;
 }
 
-.card {
+.upload-card {
   background: var(--surface);
   border-radius: 18px;
   box-shadow: var(--shadow-lg);
@@ -227,7 +227,7 @@ a:focus-visible {
   max-width: 30rem;
 }
 
-.card h2 {
+.upload-card h2 {
   margin: 0 0 6px;
   font-family: var(--font-display);
   font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);

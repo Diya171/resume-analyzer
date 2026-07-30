@@ -5,7 +5,28 @@
 /* ============================
    Design tokens (kept in sync with Home.css)
    ============================ */
+   /* Add this at the very top of Results.css, before everything else */
+html, body, #root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 
+.results-page {
+  min-height: 100vh;
+  width: 100vw;      /* was 100% — 100vw guarantees full viewport width
+                         even if a parent has padding/max-width applied */
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 40px) clamp(16px, 5vw, 20px) 60px;
+  font-family: var(--font-body);
+  color: var(--ink-700);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(91, 61, 245, 0.1), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(255, 122, 92, 0.08), transparent 45%),
+    var(--canvas);
+}
 :root {
   --ink-900: #17132b;
   --ink-700: #34304f;
@@ -55,10 +76,6 @@
    Page layout
    ============================ */
 
-/* display:flex + justify-content:center centers the container reliably —
-   this does NOT depend on margin:auto resolving correctly, which is what
-   appeared to be failing before (content was hugging the left edge instead
-   of being centered with even space on both sides). */
 .results-page {
   min-height: 100vh;
   width: 100%;
@@ -74,11 +91,12 @@
     var(--canvas);
 }
 
-/* Fluid width instead of a flat max-width — this fills noticeably more of
-   very wide screens (e.g. 1600px+ monitors) instead of stopping at a fixed
-   1200px and leaving a large unused gutter. */
+/* Single-column stack of full-width rows. Some rows contain their own
+   .two-col-grid (Strengths/Weaknesses, Job Roles/Improvements, Skills
+   sub-groups) which splits INTO two columns, but the row itself always
+   spans the full container width — matching the reference layout. */
 .results-container {
-  width: min(95%, 1400px);
+  width: min(95%, 1100px);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -130,48 +148,6 @@ button:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--violet-500);
   outline-offset: 2px;
-}
-
-/* ============================
-   Main + sidebar shell
-   ============================ */
-
-.results-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.main-col,
-.side-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0; /* prevents chip/text content from forcing the column wider */
-}
-
-@media (max-width: 900px) {
-  .results-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .two-col-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .score-card {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .results-header {
-    flex-direction: column;
-  }
-
-  .analyze-another-button {
-    width: 100%;
-  }
 }
 
 /* ============================
@@ -300,14 +276,34 @@ textarea:focus-visible {
 }
 
 /* ============================
-   Two-column grid — used INSIDE a single card
-   (Technical/Soft skills, Matching/Missing skills)
+   Two-column grid — used for Strengths/Weaknesses,
+   Job Roles/Improvements (top level), AND inside a single card for
+   Technical/Soft skills, Matching/Missing skills.
    ============================ */
 
 .two-col-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .score-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .results-header {
+    flex-direction: column;
+  }
+
+  .analyze-another-button {
+    width: 100%;
+  }
 }
 
 /* ============================
