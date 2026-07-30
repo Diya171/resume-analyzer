@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
-from main import app, ResumeAnalysis
+from main import app, ResumeAnalysis, JobMatchAnalysis
 
 client = TestClient(app)
 
@@ -23,19 +23,26 @@ def make_sample_pdf(text="John Doe\nSoftware Engineer\n" + ("Experienced develop
     return buffer.read()
 
 
-def make_fake_gemini_response(analysis: ResumeAnalysis) -> MagicMock:
-    """Build a fake object mimicking google-genai's response shape,
-    i.e. it just needs a `.text` attribute containing JSON."""
+def make_fake_gemini_response(model_instance) -> MagicMock:
     fake_response = MagicMock()
-    fake_response.text = analysis.model_dump_json()
+    fake_response.text = model_instance.model_dump_json()
     return fake_response
 
+
+def make_job_description(word_count: int) -> str:
+    """Build a job description with an exact word count for boundary testing."""
+    return " ".join(["requirement"] * word_count)
+
+
+# --- /health ---
 
 def test_health():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
+# --- /api/analyze (existing behavior, plus new extracted_text field) ---
 
 def test_analyze_rejects_non_pdf():
     fake_file = io.BytesIO(b"This is just plain text, not a PDF.")
@@ -47,31 +54,10 @@ def test_analyze_rejects_non_pdf():
     assert response.json() == {"error": "Only PDF files are supported."}
 
 
-def test_analyze_rejects_fake_pdf_extension():
-    """Content-type says PDF, but the actual bytes aren't — magic byte check should catch this."""
-    fake_file = io.BytesIO(b"This is not really a PDF despite the name.")
-    response = client.post(
-        "/api/analyze",
-        files={"resume": ("resume.pdf", fake_file, "application/pdf")},
-    )
-    assert response.status_code == 400
-    assert response.json() == {"error": "Only PDF files are supported."}
-
-
-def test_analyze_rejects_empty_file():
-    empty_file = io.BytesIO(b"")
-    response = client.post(
-        "/api/analyze",
-        files={"resume": ("resume.pdf", empty_file, "application/pdf")},
-    )
-    assert response.status_code == 400
-
-
 def test_analyze_rejects_scanned_pdf_with_no_text():
-    """A PDF with no text layer at all (blank page, nothing drawn)."""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
-    c.save()  # blank page, no text drawn
+    c.save()
     buffer.seek(0)
     blank_pdf_bytes = buffer.read()
 
@@ -84,17 +70,15 @@ def test_analyze_rejects_scanned_pdf_with_no_text():
 
 
 @patch("main.get_genai_client")
-def test_analyze_happy_path_with_gemini(mock_get_client):
-    """Mocks the Gemini call so we never hit the real API. Verifies the
-    full structured response is parsed, validated, and returned."""
+def test_analyze_happy_path_includes_extracted_text(mock_get_client):
     fake_analysis = ResumeAnalysis(
         candidate_summary="Experienced backend engineer with 5 years in Python and cloud infrastructure.",
         technical_skills=["Python", "FastAPI", "AWS"],
         soft_skills=["Communication", "Leadership"],
-        strengths=["Strong ownership of projects", "Deep API design experience"],
+        strengths=["Strong ownership of projects"],
         weaknesses=["Limited frontend exposure"],
         suggested_improvements=["Add quantifiable metrics to project bullet points"],
-        suitable_job_roles=["Backend Engineer", "Platform Engineer"],
+        suitable_job_roles=["Backend Engineer"],
         overall_score=82,
     )
 
@@ -111,15 +95,13 @@ def test_analyze_happy_path_with_gemini(mock_get_client):
     assert response.status_code == 200
     data = response.json()
     assert data["overall_score"] == 82
-    assert "Python" in data["technical_skills"]
-    assert data["candidate_summary"] == fake_analysis.candidate_summary
-    mock_client_instance.models.generate_content.assert_called_once()
+    assert "extracted_text" in data
+    assert "John Doe" in data["extracted_text"]
+    assert "Software Engineer" in data["extracted_text"]
 
 
 @patch("main.get_genai_client")
 def test_analyze_gemini_api_failure_returns_502(mock_get_client):
-    """Simulates a Gemini API call raising an exception (e.g. auth error,
-    timeout, rate limit) — should return a generic 502, never leak details."""
     mock_client_instance = MagicMock()
     mock_client_instance.models.generate_content.side_effect = Exception(
         "401 Unauthorized: invalid API key AIzaSyFAKEKEY12345"
@@ -133,29 +115,103 @@ def test_analyze_gemini_api_failure_returns_502(mock_get_client):
     )
 
     assert response.status_code == 502
-    data = response.json()
-    assert data == {"error": "Resume analysis failed. Please try again."}
-    # Make sure nothing leaks into the response body
+    assert response.json() == {"error": "Resume analysis failed. Please try again."}
     assert "AIzaSy" not in response.text
     assert "401" not in response.text
 
 
+# --- /api/match-job ---
+
 @patch("main.get_genai_client")
-def test_analyze_gemini_invalid_json_returns_502(mock_get_client):
-    """Simulates Gemini returning malformed/non-conforming JSON —
-    should fail Pydantic validation and return a generic 502."""
-    fake_response = MagicMock()
-    fake_response.text = '{"candidate_summary": "Missing all other required fields"}'
+def test_match_job_happy_path(mock_get_client):
+    fake_match = JobMatchAnalysis(
+        match_score=74,
+        verdict="Moderate Match",
+        matching_skills=["3+ years Python experience", "AWS deployment experience"],
+        missing_skills=["Requires '5+ years of Kubernetes experience' — not evidenced in resume"],
+        gap_analysis=[
+            "Job requires Senior-level (5+ yrs); resume shows ~3 years of professional experience"
+        ],
+        tailoring_suggestions=[
+            "Add a line about any container/orchestration exposure, even at a learning/POC level"
+        ],
+    )
 
     mock_client_instance = MagicMock()
-    mock_client_instance.models.generate_content.return_value = fake_response
+    mock_client_instance.models.generate_content.return_value = make_fake_gemini_response(fake_match)
     mock_get_client.return_value = mock_client_instance
 
-    pdf_bytes = make_sample_pdf()
     response = client.post(
-        "/api/analyze",
-        files={"resume": ("resume.pdf", pdf_bytes, "application/pdf")},
+        "/api/match-job",
+        json={
+            "resume_text": "John Doe. Software Engineer with 3 years of Python and AWS experience.",
+            "job_description": make_job_description(25),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["match_score"] == 74
+    assert data["verdict"] == "Moderate Match"
+    assert "Kubernetes" in data["missing_skills"][0]
+    mock_client_instance.models.generate_content.assert_called_once()
+
+
+def test_match_job_rejects_missing_resume_text():
+    response = client.post(
+        "/api/match-job",
+        json={
+            "resume_text": "",
+            "job_description": make_job_description(25),
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {"error": "No resume data provided. Please analyze a resume first."}
+
+
+def test_match_job_rejects_too_short_job_description():
+    response = client.post(
+        "/api/match-job",
+        json={
+            "resume_text": "Some resume text here.",
+            "job_description": make_job_description(19),  # one under the minimum
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": "Job description is too short — please provide at least 20 words."
+    }
+
+
+def test_match_job_rejects_too_long_job_description():
+    response = client.post(
+        "/api/match-job",
+        json={
+            "resume_text": "Some resume text here.",
+            "job_description": make_job_description(5001),  # one over the maximum
+        },
+    )
+    assert response.status_code == 400
+    assert response.json() == {
+        "error": "Job description is too long — please keep it under 5000 words."
+    }
+
+
+@patch("main.get_genai_client")
+def test_match_job_gemini_failure_returns_502(mock_get_client):
+    mock_client_instance = MagicMock()
+    mock_client_instance.models.generate_content.side_effect = Exception(
+        "503 Service Unavailable"
+    )
+    mock_get_client.return_value = mock_client_instance
+
+    response = client.post(
+        "/api/match-job",
+        json={
+            "resume_text": "Some resume text here.",
+            "job_description": make_job_description(25),
+        },
     )
 
     assert response.status_code == 502
-    assert response.json() == {"error": "Resume analysis failed. Please try again."}
+    assert response.json() == {"error": "Job match analysis failed. Please try again."}

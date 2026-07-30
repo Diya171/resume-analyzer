@@ -1,104 +1,583 @@
-.results-card {
-  max-width: 640px;
+/* Google Fonts: Sora (display) + Inter (body) + JetBrains Mono (score figures).
+   Same fonts as Home.css — if you remove the @import there, remove it here too. */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
+
+/* ============================
+   Design tokens (kept in sync with Home.css)
+   ============================ */
+
+:root {
+  /* Neutrals */
+  --ink-900: #17132b;
+  --ink-700: #34304f;
+  --ink-500: #6b6488;
+  --ink-300: #9c96b8;
+  --canvas: #f6f4fc;
+  --surface: #ffffff;
+  --surface-alt: #f0edfb;
+  --border: #e3ddf7;
+
+  /* Brand violet (primary — resume score, skill chips) */
+  --violet-800: #221457;
+  --violet-700: #3a1fc4;
+  --violet-600: #5b3df5;
+  --violet-500: #7b62f8;
+  --violet-100: #ece6fe;
+
+  /* Coral (secondary — job-role chips, hero-adjacent accents) */
+  --coral-600: #ef5a3c;
+  --coral-500: #ff7a5c;
+  --coral-100: #ffe4dc;
+
+  /* Teal (tertiary — job-match score, always teal regardless of band) */
+  --match-accent: #0d9488;
+  --match-accent-dark: #0b7a70;
+  --match-soft-bg: #e1f5f2;
+
+  /* Status */
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --danger: #e5484d;
+  --danger-bg: #fdecea;
+
+  /* Type */
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  /* Elevation */
+  --shadow-sm: 0 2px 10px rgba(34, 20, 87, 0.06);
+  --shadow-md: 0 10px 30px rgba(34, 20, 87, 0.12);
 }
 
-.back-link {
-  background: none;
-  border: none;
-  color: #6366f1;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 16px;
-  display: inline-block;
-  text-decoration: none;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.back-link:hover {
-  text-decoration: underline;
+/* ============================
+   Page layout
+   ============================ */
+
+.results-page {
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  padding: clamp(24px, 5vw, 40px) clamp(16px, 5vw, 20px) 60px;
+  font-family: var(--font-body);
+  color: var(--ink-700);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(91, 61, 245, 0.1), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(255, 122, 92, 0.08), transparent 45%),
+    var(--canvas);
+}
+
+/* Real page-level grid: two columns on wide screens so rows can hold two
+   cards side by side, one column on mobile (see media query below).
+   minmax(0, 1fr) instead of a bare 1fr keeps long unbroken content (chips,
+   filenames) from forcing the grid wider than its container. */
+.results-container {
+  width: 100%;
+  max-width: 1200px; /* 1280px — the actual place a max-width belongs now */
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Rows that should take the full width of the grid regardless of column
+   count: header, score summary, skills card, job-match section. */
+.full-span {
+  grid-column: 1 / -1;
+}
+
+.results-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 1.9rem);
+  color: var(--ink-900);
 }
 
 .filename {
-  color: #666;
+  margin: 0;
+  color: var(--ink-500);
   font-size: 0.9rem;
-  margin: -8px 0 20px;
   word-break: break-all;
 }
 
-.score-block {
+.analyze-another-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--violet-600), var(--violet-700));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.analyze-another-button:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--violet-500);
+  outline-offset: 2px;
+}
+
+/* ============================
+   Card primitive (shared)
+   ============================ */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  padding: clamp(18px, 4vw, 26px);
+  height: 100%;
+}
+
+.card-title {
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.subpanel-title {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Strengths / weaknesses accent borders */
+.accent-strength {
+  border-left: 4px solid var(--success);
+}
+
+.accent-weakness {
+  border-left: 4px solid var(--warning);
+}
+
+/* ============================
+   Score card + ring
+   ============================ */
+
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 4vw, 28px);
+  flex-wrap: wrap;
+}
+
+.score-ring-wrapper {
+  position: relative;
+  width: clamp(108px, 30vw, 160px);
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+}
+
+.score-ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+.score-ring-bg {
+  stroke: var(--surface-alt);
+}
+
+.score-ring-fg {
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.score-red .score-ring-fg {
+  stroke: var(--danger);
+}
+
+.score-amber .score-ring-fg {
+  stroke: var(--warning);
+}
+
+.score-green .score-ring-fg {
+  stroke: var(--success);
+}
+
+/* Job-match ring always uses the teal accent, regardless of score band,
+   so it's never visually confused with the resume score ring. */
+.score-variant-match .score-ring-fg {
+  stroke: var(--match-accent) !important;
+}
+
+.score-variant-match .score-ring-bg {
+  stroke: var(--match-soft-bg);
+}
+
+.score-ring-label {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 28px;
-}
-
-.score-circle {
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  background-color: #6366f1;
-  color: #fff;
-  font-size: 1.6rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
-.score-label {
-  font-size: 0.8rem;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.score-number {
+  font-family: var(--font-mono);
+  font-size: clamp(1.4rem, 4vw + 0.4rem, 2rem);
+  font-weight: 700;
+  color: var(--ink-900);
+  line-height: 1;
 }
 
-.section {
-  margin-bottom: 22px;
+.score-max {
+  font-family: var(--font-mono);
+  font-size: clamp(0.65rem, 1vw + 0.4rem, 0.75rem);
+  color: var(--ink-300);
+  margin-top: 4px;
 }
 
-.section h2 {
-  font-size: 1rem;
-  margin: 0 0 8px;
-  color: #1a1a2e;
-}
-
-.section p {
+.candidate-summary {
   margin: 0;
-  color: #333;
-  line-height: 1.5;
-  font-size: 0.95rem;
+  color: var(--ink-700);
+  line-height: 1.65;
+  font-size: 0.98rem;
+  flex: 1;
+  min-width: 220px;
 }
 
-.empty {
-  color: #999;
-  font-size: 0.9rem;
-  font-style: italic;
+/* ============================
+   Two-column grid — used INSIDE a single card (Technical/Soft skills,
+   Matching/Missing skills). Independent of the page-level grid above.
+   ============================ */
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 }
 
-.tag-list {
+@media (max-width: 768px) {
+  .results-container {
+    grid-template-columns: 1fr;
+  }
+
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .score-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .results-header {
+    flex-direction: column;
+  }
+
+  .analyze-another-button {
+    width: 100%;
+  }
+}
+
+/* ============================
+   Chips (skills / roles / match results)
+   ============================ */
+
+.chip-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.tag {
-  background-color: #eef0ff;
-  color: #4f52d4;
-  padding: 4px 12px;
+.chip {
+  display: inline-block;
+  padding: 6px 14px;
   border-radius: 999px;
   font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
-.bullet-list {
+.chip-skill {
+  background-color: var(--violet-100);
+  color: var(--violet-700);
+}
+
+.chip-role {
+  background-color: var(--coral-100);
+  color: var(--coral-600);
+}
+
+.chip-match {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.chip-missing {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* ============================
+   Lists
+   ============================ */
+
+.empty {
+  color: var(--ink-300);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0;
+}
+
+.bullet-list,
+.numbered-list {
   margin: 0;
   padding-left: 20px;
-  color: #333;
+  color: var(--ink-700);
   font-size: 0.95rem;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-.bullet-list li {
-  margin-bottom: 4px;
+.bullet-list li,
+.numbered-list li {
+  margin-bottom: 10px;
+}
+
+.bullet-list li:last-child,
+.numbered-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================
+   Job Match — trigger + panel
+   ============================ */
+
+.job-match-trigger {
+  display: flex;
+  justify-content: center;
+}
+
+.check-match-button {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--match-accent), var(--match-accent-dark));
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.check-match-button:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.job-match-card {
+  border-top: 4px solid var(--match-accent);
+}
+
+.job-description-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 140px;
+  background: var(--surface-alt);
+}
+
+.job-description-input:focus {
+  outline: none;
+  border-color: var(--match-accent);
+  background: var(--surface);
+}
+
+.word-counter-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.word-counter {
+  font-size: 0.8rem;
+  color: var(--ink-300);
+}
+
+.word-counter-invalid {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.get-match-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--match-accent), var(--match-accent-dark));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.get-match-button:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.get-match-button:disabled {
+  background: var(--border);
+  color: var(--ink-300);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Match result --- */
+
+.match-result {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.match-score-block {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.verdict-badge {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.verdict-strong {
+  background-color: var(--success-bg);
+  color: var(--success);
+}
+
+.verdict-moderate {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+}
+
+.verdict-weak {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+.subpanel {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+}
+
+.check-another-button {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--match-accent);
+  border-radius: 9px;
+  background-color: #fff;
+  color: var(--match-accent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.check-another-button:hover {
+  background-color: var(--match-soft-bg);
+}
+
+/* ============================
+   Error banner (shared with Home page pattern)
+   ============================ */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.banner-error {
+  background-color: var(--danger-bg);
+  color: #a5231a;
+  border: 1px solid #f3c1bc;
+}
+
+.banner-dismiss {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  padding: 0 4px;
 }
