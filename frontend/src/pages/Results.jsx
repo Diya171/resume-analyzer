@@ -24,9 +24,6 @@ function ScoreRing({ score, variant = "primary" }) {
 
   return (
     <div className={`score-ring-wrapper ${band} score-variant-${variant}`}>
-      {/* width/height are controlled by CSS (.score-ring-wrapper), not fixed
-          attributes here, so the ring scales down cleanly on small screens
-          while the viewBox keeps its internal proportions intact. */}
       <svg className="score-ring" viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
         <circle
           className="score-ring-bg"
@@ -148,7 +145,7 @@ function JobMatchSection({ resumeText }) {
 
   if (!isOpen) {
     return (
-      <div className="job-match-trigger full-span">
+      <div className="job-match-trigger">
         <button className="check-match-button" onClick={() => setIsOpen(true)}>
           Check Job Match
         </button>
@@ -157,7 +154,7 @@ function JobMatchSection({ resumeText }) {
   }
 
   return (
-    <section className="card job-match-card full-span">
+    <section className="card job-match-card">
       <h2 className="card-title">Check Job Match</h2>
 
       {error && (
@@ -268,7 +265,7 @@ export default function Results() {
   return (
     <div className="results-page">
       <div className="results-container">
-        <header className="results-header full-span">
+        <header className="results-header">
           <div>
             <h1 className="page-title">Resume Analysis</h1>
             {filename && <p className="filename">{filename}</p>}
@@ -278,42 +275,50 @@ export default function Results() {
           </button>
         </header>
 
-        <section className="card score-card full-span">
-          <ScoreRing score={overall_score} />
-          <p className="candidate-summary">{candidate_summary}</p>
-        </section>
+        <div className="results-shell">
+          <div className="main-col">
+            <section className="card score-card">
+              <ScoreRing score={overall_score} />
+              <p className="candidate-summary">{candidate_summary}</p>
+            </section>
 
-        <section className="card full-span">
-          <h2 className="card-title">Skills</h2>
-          <div className="two-col-grid">
-            <div className="subpanel">
-              <h3 className="subpanel-title">Technical Skills</h3>
-              <ChipList items={technical_skills} variant="skill" />
-            </div>
-            <div className="subpanel">
-              <h3 className="subpanel-title">Soft Skills</h3>
-              <ChipList items={soft_skills} variant="skill" />
-            </div>
+            <section className="card">
+              <h2 className="card-title">Skills</h2>
+              <div className="two-col-grid">
+                <div className="subpanel">
+                  <h3 className="subpanel-title">Technical Skills</h3>
+                  <ChipList items={technical_skills} variant="skill" />
+                </div>
+                <div className="subpanel">
+                  <h3 className="subpanel-title">Soft Skills</h3>
+                  <ChipList items={soft_skills} variant="skill" />
+                </div>
+              </div>
+            </section>
+
+            <section className="card">
+              <h2 className="card-title">Suggested Improvements</h2>
+              <NumberedList items={suggested_improvements} />
+            </section>
           </div>
-        </section>
 
-        <section className="card accent-strength">
-          <h2 className="card-title">Strengths</h2>
-          <BulletList items={strengths} />
-        </section>
-        <section className="card accent-weakness">
-          <h2 className="card-title">Weaknesses</h2>
-          <BulletList items={weaknesses} />
-        </section>
+          <div className="side-col">
+            <section className="card accent-strength">
+              <h2 className="card-title">Strengths</h2>
+              <BulletList items={strengths} />
+            </section>
 
-        <section className="card">
-          <h2 className="card-title">Suggested Improvements</h2>
-          <NumberedList items={suggested_improvements} />
-        </section>
-        <section className="card">
-          <h2 className="card-title">Suitable Job Roles</h2>
-          <ChipList items={suitable_job_roles} variant="role" />
-        </section>
+            <section className="card accent-weakness">
+              <h2 className="card-title">Weaknesses</h2>
+              <BulletList items={weaknesses} />
+            </section>
+
+            <section className="card">
+              <h2 className="card-title">Suitable Job Roles</h2>
+              <ChipList items={suitable_job_roles} variant="role" />
+            </section>
+          </div>
+        </div>
 
         <JobMatchSection resumeText={extracted_text} />
       </div>
