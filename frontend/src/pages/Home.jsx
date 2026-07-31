@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/analyze`;
+const API_URL = "https://dhfqinorgtbb5.cloudfront.net/api/analyze";
 
 function isPdfFile(file) {
   const validType = file.type === "application/pdf";

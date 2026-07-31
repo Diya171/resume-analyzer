@@ -4,7 +4,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import "./Results.css";
 
-const MATCH_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/match-job`;
+const MATCH_API_URL = "https://dhfqinorgtbb5.cloudfront.net/api/match-job";
 const MIN_WORDS = 20;
 const MAX_WORDS = 5000;
 

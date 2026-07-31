@@ -21,7 +21,7 @@ app = FastAPI(title="Resume Analyzer API")
 # Allow the Vite dev server to call this API locally.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "https://master.d2ube890t475hx.amplifyapp.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
