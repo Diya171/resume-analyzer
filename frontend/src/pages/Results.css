@@ -1,32 +1,5 @@
-/* Google Fonts: Sora (display) + Inter (body) + JetBrains Mono (score figures).
-   Same fonts as Home.css — if you remove the @import there, remove it here too. */
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap');
 
-/* ============================
-   Design tokens (kept in sync with Home.css)
-   ============================ */
-   /* Add this at the very top of Results.css, before everything else */
-html, body, #root {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-.results-page {
-  min-height: 100vh;
-  width: 100vw;      /* was 100% — 100vw guarantees full viewport width
-                         even if a parent has padding/max-width applied */
-  overflow-x: hidden;
-  display: flex;
-  justify-content: center;
-  padding: clamp(24px, 5vw, 40px) clamp(16px, 5vw, 20px) 60px;
-  font-family: var(--font-body);
-  color: var(--ink-700);
-  background:
-    radial-gradient(circle at 15% 0%, rgba(91, 61, 245, 0.1), transparent 55%),
-    radial-gradient(circle at 100% 0%, rgba(255, 122, 92, 0.08), transparent 45%),
-    var(--canvas);
-}
 :root {
   --ink-900: #17132b;
   --ink-700: #34304f;
@@ -72,13 +45,15 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-/* ============================
-   Page layout
-   ============================ */
+html, body, #root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 
 .results-page {
   min-height: 100vh;
-  width: 100%;
+  width: 100vw;
   overflow-x: hidden;
   display: flex;
   justify-content: center;
@@ -91,10 +66,6 @@ html, body, #root {
     var(--canvas);
 }
 
-/* Single-column stack of full-width rows. Some rows contain their own
-   .two-col-grid (Strengths/Weaknesses, Job Roles/Improvements, Skills
-   sub-groups) which splits INTO two columns, but the row itself always
-   spans the full container width — matching the reference layout. */
 .results-container {
   width: min(95%, 1100px);
   display: flex;
@@ -107,6 +78,12 @@ html, body, #root {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -144,15 +121,55 @@ html, body, #root {
   transform: translateY(-1px);
 }
 
+.download-pdf-button {
+  padding: 10px 18px;
+  border: 1.5px solid var(--violet-600);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--violet-600);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.download-pdf-button:hover:not(:disabled) {
+  background-color: var(--violet-100);
+  transform: translateY(-1px);
+}
+
+.download-pdf-button:disabled {
+  border-color: var(--border);
+  color: var(--ink-300);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner-dark {
+  border: 2px solid rgba(91, 61, 245, 0.25);
+  border-top-color: var(--violet-600);
+}
+
+.download-pdf-button:disabled .spinner-dark {
+  border: 2px solid rgba(156, 150, 184, 0.3);
+  border-top-color: var(--ink-300);
+}
+
 button:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--violet-500);
   outline-offset: 2px;
 }
 
-/* ============================
-   Card primitive (shared)
-   ============================ */
+.pdf-report {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
 .card {
   background: var(--surface);
@@ -186,10 +203,6 @@ textarea:focus-visible {
 .accent-weakness {
   border-left: 4px solid var(--warning);
 }
-
-/* ============================
-   Score card + ring
-   ============================ */
 
 .score-card {
   display: flex;
@@ -275,12 +288,6 @@ textarea:focus-visible {
   min-width: 220px;
 }
 
-/* ============================
-   Two-column grid — used for Strengths/Weaknesses,
-   Job Roles/Improvements (top level), AND inside a single card for
-   Technical/Soft skills, Matching/Missing skills.
-   ============================ */
-
 .two-col-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -301,14 +308,15 @@ textarea:focus-visible {
     flex-direction: column;
   }
 
-  .analyze-another-button {
+  .header-actions {
     width: 100%;
   }
-}
 
-/* ============================
-   Chips (skills / roles / match results)
-   ============================ */
+  .download-pdf-button,
+  .analyze-another-button {
+    flex: 1;
+  }
+}
 
 .chip-list {
   display: flex;
@@ -347,10 +355,6 @@ textarea:focus-visible {
   color: var(--danger);
 }
 
-/* ============================
-   Lists
-   ============================ */
-
 .empty {
   color: var(--ink-300);
   font-size: 0.9rem;
@@ -376,10 +380,6 @@ textarea:focus-visible {
 .numbered-list li:last-child {
   margin-bottom: 0;
 }
-
-/* ============================
-   Job Match — trigger + panel
-   ============================ */
 
 .job-match-trigger {
   display: flex;
@@ -548,10 +548,6 @@ textarea:focus-visible {
 .check-another-button:hover {
   background-color: var(--match-soft-bg);
 }
-
-/* ============================
-   Error banner
-   ============================ */
 
 .banner {
   display: flex;

@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import "./Results.css";
 
 const MATCH_API_URL = "http://localhost:8000/api/match-job";
@@ -240,11 +242,22 @@ function JobMatchSection({ resumeText }) {
   );
 }
 
+function buildPdfFilename(filename) {
+  if (!filename) return "Resume_Analysis.pdf";
+  const withoutExtension = filename.replace(/\.pdf$/i, "");
+  const safeName = withoutExtension.replace(/[^a-zA-Z0-9_\-]/g, "_");
+  return `${safeName}_Analysis.pdf`;
+}
+
 export default function Results() {
   const location = useLocation();
   const navigate = useNavigate();
   const analysis = location.state?.analysis;
   const filename = location.state?.filename;
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const reportRef = useRef(null);
 
   if (!analysis) {
     return <Navigate to="/" replace />;
@@ -262,6 +275,75 @@ export default function Results() {
     extracted_text,
   } = analysis;
 
+  async function handleDownloadPdf() {
+    if (!reportRef.current) return;
+
+    setIsExporting(true);
+    setExportError("");
+
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const canvasPageHeight = (pageHeight * canvas.width) / imgWidth;
+
+      let renderedHeight = 0;
+      let isFirstPage = true;
+
+      while (renderedHeight < canvas.height) {
+        const sliceHeight = Math.min(canvasPageHeight, canvas.height - renderedHeight);
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+
+        const ctx = pageCanvas.getContext("2d");
+        ctx.drawImage(
+          canvas,
+          0,
+          renderedHeight,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight
+        );
+
+        const pageImgData = pageCanvas.toDataURL("image/png");
+        const pageImgHeight = (sliceHeight * imgWidth) / canvas.width;
+
+        if (!isFirstPage) {
+          pdf.addPage();
+        }
+        pdf.addImage(pageImgData, "PNG", 0, 0, imgWidth, pageImgHeight);
+
+        renderedHeight += sliceHeight;
+        isFirstPage = false;
+      }
+
+      pdf.save(buildPdfFilename(filename));
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      setExportError("Could not generate the PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="results-page">
       <div className="results-container">
@@ -270,57 +352,84 @@ export default function Results() {
             <h1 className="page-title">Resume Analysis</h1>
             {filename && <p className="filename">{filename}</p>}
           </div>
-          <button className="analyze-another-button" onClick={() => navigate("/")}>
-            Analyze Another Resume
-          </button>
+          <div className="header-actions">
+            <button
+              className="download-pdf-button"
+              onClick={handleDownloadPdf}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <>
+                  <span className="spinner spinner-dark" /> Generating...
+                </>
+              ) : (
+                "Download PDF"
+              )}
+            </button>
+            <button className="analyze-another-button" onClick={() => navigate("/")}>
+              Analyze Another Resume
+            </button>
+          </div>
         </header>
 
-        {/* Row 1 — full width */}
-        <section className="card score-card">
-          <ScoreRing score={overall_score} />
-          <p className="candidate-summary">{candidate_summary}</p>
-        </section>
-
-        {/* Row 2 — full width */}
-        <section className="card">
-          <h2 className="card-title">Skills</h2>
-          <div className="two-col-grid">
-            <div className="subpanel">
-              <h3 className="subpanel-title">Technical Skills</h3>
-              <ChipList items={technical_skills} variant="skill" />
-            </div>
-            <div className="subpanel">
-              <h3 className="subpanel-title">Soft Skills</h3>
-              <ChipList items={soft_skills} variant="skill" />
-            </div>
+        {exportError && (
+          <div className="banner banner-error" role="alert">
+            <span>{exportError}</span>
+            <button
+              className="banner-dismiss"
+              onClick={() => setExportError("")}
+              aria-label="Dismiss error"
+            >
+              ×
+            </button>
           </div>
-        </section>
+        )}
 
-        {/* Row 3 — Strengths | Weaknesses, side by side */}
-        <div className="two-col-grid">
-          <section className="card accent-strength">
-            <h2 className="card-title">Strengths</h2>
-            <BulletList items={strengths} />
+        {/* Everything inside this ref is exactly what gets captured into
+            the PDF — Check Job Match is deliberately rendered outside it. */}
+        <div ref={reportRef} className="pdf-report">
+          <section className="card score-card">
+            <ScoreRing score={overall_score} />
+            <p className="candidate-summary">{candidate_summary}</p>
           </section>
-          <section className="card accent-weakness">
-            <h2 className="card-title">Weaknesses</h2>
-            <BulletList items={weaknesses} />
+
+          <section className="card">
+            <h2 className="card-title">Skills</h2>
+            <div className="two-col-grid">
+              <div className="subpanel">
+                <h3 className="subpanel-title">Technical Skills</h3>
+                <ChipList items={technical_skills} variant="skill" />
+              </div>
+              <div className="subpanel">
+                <h3 className="subpanel-title">Soft Skills</h3>
+                <ChipList items={soft_skills} variant="skill" />
+              </div>
+            </div>
           </section>
+
+          <div className="two-col-grid">
+            <section className="card accent-strength">
+              <h2 className="card-title">Strengths</h2>
+              <BulletList items={strengths} />
+            </section>
+            <section className="card accent-weakness">
+              <h2 className="card-title">Weaknesses</h2>
+              <BulletList items={weaknesses} />
+            </section>
+          </div>
+
+          <div className="two-col-grid">
+            <section className="card">
+              <h2 className="card-title">Suitable Job Roles</h2>
+              <ChipList items={suitable_job_roles} variant="role" />
+            </section>
+            <section className="card">
+              <h2 className="card-title">Suggested Improvements</h2>
+              <NumberedList items={suggested_improvements} />
+            </section>
+          </div>
         </div>
 
-        {/* Row 4 — Job Roles | Suggested Improvements, side by side */}
-        <div className="two-col-grid">
-          <section className="card">
-            <h2 className="card-title">Suitable Job Roles</h2>
-            <ChipList items={suitable_job_roles} variant="role" />
-          </section>
-          <section className="card">
-            <h2 className="card-title">Suggested Improvements</h2>
-            <NumberedList items={suggested_improvements} />
-          </section>
-        </div>
-
-        {/* Row 5 — full width */}
         <JobMatchSection resumeText={extracted_text} />
       </div>
     </div>
